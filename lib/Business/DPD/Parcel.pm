@@ -116,7 +116,7 @@ sub _hop_country_city {
     $hop->{city} =~ /^([^\(]*)\((\w+)\)$/;
 
     my $city = $1;
-    my $country = lc($2);
+    my $country = $2;
 
     $city =~ s/\s+$//;
 

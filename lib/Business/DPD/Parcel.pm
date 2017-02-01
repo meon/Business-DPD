@@ -109,22 +109,33 @@ sub _hop_datetime {
     return $strp->parse_datetime($hop->{date} . " " . $hop->{time}),;
 }
 
+sub _hop_country_city {
+    my ($self, $hop) = @_;
+
+    #~ "city":	"Unna (DE)", Velke Prilepy (CZ)
+    $hop->{city} =~ /^([^\(]*)\((\w+)\)$/;
+
+    my $city = $1;
+    my $country = lc($2);
+
+    $city =~ s/\s+$//;
+
+    return ($city, $country);
+}
+
 sub _hop_country {
     my ($self, $hop) = @_;
     return undef unless ($hop);
 
-    #~ "city":	"Unna (DE)",
-    my ($city, $county) = split(/\s+/, $hop->{city});
-    $county =~ s/[\(\)]//g;
-    return $county;
+    my ($city, $country) = $self->_hop_country_city($hop);
+    return $country;
 }
 
 sub _hop_city {
     my ($self, $hop) = @_;
     return undef unless ($hop);
 
-    #~ "city":	"Unna (DE)",
-    my ($city, $country) = split(/\s+/, $hop->{city});
+    my ($city, $country) = $self->_hop_country_city($hop);
     return $city;
 }
 
@@ -133,11 +144,14 @@ sub pick_up_datetime {
     return undef unless ($self->exists);
 
     foreach my $hop (@{$self->_hops}) {
-        next unless ($hop->{contents}->[0]->{label} eq "Received by DPD from consignor.");
+        next unless ($hop->{contents}->[0]->{label} =~ /^(Received by DPD from consignor\.|In transit\.)$/);
         return $self->_hop_datetime($hop);
     }
 
-    die "pickup information not found ".Dumper($self->_hops);
+    warn "pickup information not found for parcel "
+        . $self->tracking_number . ": "
+        . Dumper($self->_hops);
+    return undef;
 }
 
 sub delivered {

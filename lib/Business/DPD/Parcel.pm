@@ -51,8 +51,15 @@ sub dpd_tracking_data_string {
     my ($self) = @_;
     return $self->_dpd_tracking_data_string if ($self->_dpd_tracking_data_string);
 
-    my $res = $self->ua->get($self->dpd_tracking_link);
-    die 'failed to fetch ' . $self->dpd_tracking_link . ': ' . $res->status_line
+    my $res;
+
+    foreach my $wait (qw(1 5 6))  {
+        sleep(2^$wait) if ($wait != 1);
+        $res = $self->ua->get($self->dpd_tracking_link);
+        last if ($res->is_success);
+    }
+
+    die 'failed to get ' . $self->dpd_tracking_link . ': ' . $res->status_line
         unless ($res->is_success);
 
     my $json = $res->content;
